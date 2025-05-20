@@ -44,6 +44,17 @@
                 {{ __('Already registered?') }}
             </a>
 
+            <!-- Campo Rol -->
+            <div class="mt-4">
+                <x-input-label for="role" :value="__('Rol')" />
+                <select id="role" name="role" required class="block mt-1 w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="analista">Analista</option>
+                    <option value="admin">Administrador</option>
+                    <option value="invitado">Invitado</option>
+                </select>
+            </div>
+
+
             <x-primary-button class="ms-4">
                 {{ __('Register') }}
             </x-primary-button>

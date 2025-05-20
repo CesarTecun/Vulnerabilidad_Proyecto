@@ -9,13 +9,19 @@ class Vulnerabilidad extends Model
 {
     use HasFactory;
 
-    protected $table = 'vulnerabilidades'; // ← nombre correcto de la tabla
+    protected $table = 'vulnerabilidades';
 
     protected $fillable = [
         'nombre',
         'componente_afectado',
         'criticidad',
-        'descripcion',
         'estado',
+        'fecha_deteccion',
+        'cvss',
+        'descripcion',
+    ];
+
+    protected $casts = [
+        'fecha_deteccion' => 'datetime', // ✅ ahora sí correctamente casteado
     ];
 }
