@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Vulnerabilidad;
 use Illuminate\Http\Request;
+use App\Notifications\NuevaVulnerabilidadDetectada;
+use Illuminate\Support\Facades\Notification;
+use App\Models\User;
 use Illuminate\Support\Str;
 
 
 class VulnerabilidadController extends Controller
 {
-    /**
-     * Mostrar todas las vulnerabilidades.
-     */
+
+
     public function index(Request $request)
     {
         $query = Vulnerabilidad::query();
@@ -57,17 +59,21 @@ class VulnerabilidadController extends Controller
             'cvss' => 'nullable|numeric|min:0|max:10',
         ]);
     
-        Vulnerabilidad::create([
+        $vulnerabilidad = Vulnerabilidad::create([
             'nombre' => $request->nombre,
             'componente_afectado' => $request->componente_afectado,
             'criticidad' => $request->criticidad,
             'estado' => $request->estado,
             'fecha_deteccion' => $request->fecha_deteccion,
             'cvss' => $request->cvss,
+            'descripcion' => $request->descripcion,
         ]);
     
+        // ✅ Enviar notificación al usuario actual
+        auth()->user()->notify(new NuevaVulnerabilidadDetectada($vulnerabilidad->nombre));
         return redirect()->route('vulnerabilidades.index')->with('success', 'Vulnerabilidad registrada correctamente.');
     }
+    
     
     public function dashboard()
     {

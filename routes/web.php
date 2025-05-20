@@ -24,4 +24,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('vulnerabilidades', VulnerabilidadController::class)->except(['show']);
 });
 
+Route::get('/notificaciones', function () {
+    return view('notificaciones.index', [
+        'notificaciones' => auth()->user()->notifications()->paginate(10)
+    ]);
+})->middleware('auth')->name('notificaciones.index');
 require __DIR__.'/auth.php';
