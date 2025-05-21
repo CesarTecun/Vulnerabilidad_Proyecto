@@ -10,6 +10,11 @@ class AnalizadorVulnerabilidad
         ['nombre' => 'Uso de eval() inseguro', 'regex' => '/eval\s*\(/', 'criticidad' => 'Alta'],
         ['nombre' => 'Uso de Struts2 vulnerable', 'regex' => '/Struts2\-core\-2\.3\.\d+/', 'criticidad' => 'Alta'],
         ['nombre' => 'IP en lista negra', 'regex' => '/45\.89\.23\.100/', 'criticidad' => 'Media'],
+        [
+            'nombre' => 'Posible SQL Injection',
+            'regex' => '/\b(SELECT|UPDATE|DELETE|INSERT)\b.*\bFROM\b.*\$_(GET|POST|REQUEST|COOKIE)/i',
+            'criticidad' => 'Alta',
+        ],
     ];
 
     public function escanear($ruta)
