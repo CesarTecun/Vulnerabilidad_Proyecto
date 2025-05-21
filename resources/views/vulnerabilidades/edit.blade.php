@@ -63,6 +63,18 @@
                 <textarea name="descripcion" rows="4"
                           class="mt-1 block w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">{{ old('descripcion', $vulnerabilidad->descripcion) }}</textarea>
             </div>
+            @if(isset($contexto) && count($contexto))
+            <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📂 Fragmento de Código Detectado</label>
+                    <pre class="bg-gray-900 text-white text-sm rounded p-3 overflow-x-auto">
+            @foreach($contexto as $linea)
+            {!! $linea['resaltado']
+                ? "<span style='background-color: #ef4444; color: #fff;'>".str_pad($linea['num'], 4, ' ', STR_PAD_LEFT)." | ".e($linea['contenido'])."</span>"
+                : "<span>".str_pad($linea['num'], 4, ' ', STR_PAD_LEFT)." | ".e($linea['contenido'])."</span>" !!}
+            @endforeach
+                    </pre>
+                </div>
+            @endif
 
             <div class="flex justify-end">
                 <a href="{{ route('vulnerabilidades.index') }}"
@@ -77,3 +89,14 @@
         </form>
     </div>
 </x-app-layout>
+@auth
+    {{-- Notificación flotante --}}
+    @php
+        Auth::user()->refresh();
+        $pendientes = Auth::user()->unreadNotifications()->take(3);
+    @endphp
+
+    @if ($pendientes->count())
+        {{-- Aquí va el bloque corregido que te mostré arriba --}}
+    @endif
+@endauth

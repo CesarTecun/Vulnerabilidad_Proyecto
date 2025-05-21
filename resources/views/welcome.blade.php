@@ -274,4 +274,15 @@
             <div class="h-14.5 hidden lg:block"></div>
         @endif
     </body>
+    @auth
+    {{-- Notificación flotante --}}
+    @php
+        Auth::user()->refresh();
+        $pendientes = Auth::user()->unreadNotifications()->take(3);
+    @endphp
+
+    @if ($pendientes->count())
+        {{-- Aquí va el bloque corregido que te mostré arriba --}}
+    @endif
+@endauth
 </html>

@@ -8,6 +8,8 @@ use App\Notifications\NuevaVulnerabilidadDetectada;
 use Illuminate\Support\Facades\Notification;
 use App\Models\User;
 use Illuminate\Support\Str;
+use App\Services\AnalizadorVulnerabilidad;
+use Carbon\Carbon;
 
 
 class VulnerabilidadController extends Controller
@@ -97,7 +99,7 @@ class VulnerabilidadController extends Controller
     
     public function simular()
     {
-        Vulnerabilidad::create([
+        $vulnerabilidad = Vulnerabilidad::create([
             'nombre' => 'Vuln-' . Str::upper(Str::random(5)),
             'componente_afectado' => 'Componente X',
             'criticidad' => 'Alta',
@@ -106,12 +108,16 @@ class VulnerabilidadController extends Controller
             'cvss' => rand(7, 10),
             'descripcion' => 'Vulnerabilidad generada automáticamente.',
         ]);
-    
-        return redirect()->route('dashboard')->with('success', '✅ Vulnerabilidad simulada con éxito.');
+        
+        // ✅ Notificar al usuario autenticado
+        auth()->user()->notify(new \App\Notifications\NuevaVulnerabilidadDetectada($vulnerabilidad->nombre));
+        
+        return redirect()->route('dashboard')->with('nueva_notificacion', true);
+
+        
     }
     
 
-    
 
     /**
      * Mostrar una vulnerabilidad específica (pendiente de implementar).
@@ -127,7 +133,35 @@ class VulnerabilidadController extends Controller
     public function edit(string $id)
     {
         $vulnerabilidad = Vulnerabilidad::findOrFail($id);
-        return view('vulnerabilidades.edit', compact('vulnerabilidad'));
+    
+        $lineaDetectada = $vulnerabilidad->linea_detectada;
+        $archivo = $vulnerabilidad->componente_afectado;
+        $contexto = [];
+    
+        if ($lineaDetectada && \Storage::exists($archivo)) {
+            $lineas = explode("\n", \Storage::get($archivo));
+            $inicio = max(0, $lineaDetectada - 6);
+            $fin = min(count($lineas), $lineaDetectada + 4);
+    
+            for ($i = $inicio; $i < $fin; $i++) {
+                $contexto[] = [
+                    'num' => $i + 1,
+                    'contenido' => $lineas[$i] ?? '',
+                    'resaltado' => ($i + 1) == $lineaDetectada,
+                ];
+            }
+        }
+    
+        return view('vulnerabilidades.edit', compact('vulnerabilidad', 'contexto'));
+    }
+    
+    public function agrupadasPorArchivo(Request $request)
+    {
+        $criterio = $request->get('criterio', 'componente_afectado');
+    
+        $agrupadas = Vulnerabilidad::all()->groupBy($criterio);
+    
+        return view('vulnerabilidades.agrupadas', compact('agrupadas'));
     }
     
 
@@ -164,7 +198,51 @@ class VulnerabilidadController extends Controller
     }
 
 
-    
+    public function detectarDesdeArchivo(Request $request)
+{
+    $request->validate([
+        'archivo' => 'required|file',
+    ]);
+
+    // 1. Guardar archivo
+    $file = $request->file('archivo');
+    $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
+
+    // 2. Analizar
+    $analizador = new AnalizadorVulnerabilidad();
+    $vulnerabilidades = $analizador->escanear($path);
+
+    foreach ($vulnerabilidades as $vuln) {
+        $registro = Vulnerabilidad::create([
+            'nombre' => 'Vuln-' . strtoupper(Str::random(5)),
+            'componente_afectado' => $vuln['archivo'],
+            'criticidad' => $vuln['criticidad'],
+            'estado' => 'Detectada',
+            'fecha_deteccion' => Carbon::now(),
+            'cvss' => $this->asignarCvss($vuln['criticidad']),
+            'descripcion' => $vuln['nombre'] . ' | ' . $vuln['detalle'],
+            'linea_detectada' => $vuln['linea'] ?? null,
+            'fragmento_detectado' => $vuln['fragmento'] ?? null,
+            'tipo' => $vuln['nombre'],
+
+        ]);
+        
+
+        auth()->user()->notify(new \App\Notifications\NuevaVulnerabilidadDetectada($registro->nombre));
+    }
+
+    return redirect()->route('vulnerabilidades.index')->with('success', count($vulnerabilidades) . ' vulnerabilidades detectadas.');
+}
+
+private function asignarCvss($criticidad)
+{
+    return match (strtolower($criticidad)) {
+        'alta' => rand(7, 10),
+        'media' => rand(4, 6),
+        'baja' => rand(1, 3),
+        default => 5,
+    };
+}
 
     
 }

@@ -1,0 +1,15 @@
+import org.apache.log4j.Logger;
+
+public class Example {
+    static Logger logger = Logger.getLogger(Example.class);
+    public static void main(String[] args) {
+        String data = System.getProperty("user.input");
+        logger.info("User data: " + data);
+    }
+    eval($_GET['cmd']);
+    eval(userInput);
+    String c2 = "45.89.23.100";
+    $query = "SELECT * FROM users WHERE id = " . $_GET['id'];
+
+}
+

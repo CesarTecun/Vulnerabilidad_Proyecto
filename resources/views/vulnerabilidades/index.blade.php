@@ -11,6 +11,18 @@
                 ➕ Nueva Vulnerabilidad
             </a>
 
+            {{-- Formulario de escaneo --}}
+            <form method="POST" action="{{ route('vulnerabilidades.detectar') }}" enctype="multipart/form-data" class="flex gap-2 items-center">
+                @csrf
+                <input type="file" name="archivo" required
+                    class="text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none">
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
+                    🧪 Escanear archivo
+                </button>
+            </form>
+
+
             {{-- Filtros --}}
             <form method="GET" class="flex gap-2">
                 <select name="criticidad" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -75,22 +87,23 @@
                                 {{ $v->estado }}
                             </span>
                         </td>
-                        <td class="px-4 py-2 text-sm text-gray-800 dark:text-gray-100">
-                            {{ $v->fecha_deteccion ? \Carbon\Carbon::parse($v->fecha_deteccion)->format('d/m/Y') : '-' }}
-                        </td>
-                        <td class="px-4 py-2 text-sm text-right space-x-2">
-                            <a href="{{ route('vulnerabilidades.edit', $v->id) }}"
-                               class="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:underline">✏️ Editar</a>
-                            <form action="{{ route('vulnerabilidades.destroy', $v->id) }}" method="POST" class="inline-block"
-                                  onsubmit="return confirm('¿Deseas eliminar esta vulnerabilidad?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="text-red-600 dark:text-red-400 text-xs font-semibold hover:underline">
-                                    🗑 Eliminar
-                                </button>
-                            </form>
-                        </td>
+                                        <td class="px-4 py-2 text-sm text-right space-x-2">
+                    <a href="{{ route('vulnerabilidades.edit', $v->id) }}"
+                    class="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:underline">
+                    📄  Editar reporte
+                    </a>
+
+                    <form action="{{ route('vulnerabilidades.destroy', $v->id) }}" method="POST" class="inline-block"
+                        onsubmit="return confirm('¿Deseas eliminar esta vulnerabilidad?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="text-red-600 dark:text-red-400 text-xs font-semibold hover:underline">
+                            🗑 Eliminar
+                        </button>
+                    </form>
+                </td>
+
                     </tr>
                     @empty
                     <tr>
@@ -109,3 +122,14 @@
         </div>
     </div>
 </x-app-layout>
+@auth
+    {{-- Notificación flotante --}}
+    @php
+        Auth::user()->refresh();
+        $pendientes = Auth::user()->unreadNotifications()->take(3);
+    @endphp
+
+    @if ($pendientes->count())
+        {{-- Aquí va el bloque corregido que te mostré arriba --}}
+    @endif
+@endauth

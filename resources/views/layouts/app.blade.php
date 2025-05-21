@@ -35,5 +35,12 @@
 
         <!-- Extra Scripts (como Chart.js, etc) -->
         @stack('scripts')
+
+
+        @auth
+            <x-notificacion-flotante />
+        @endauth
+
+
     </body>
 </html>

@@ -89,4 +89,16 @@
         </div>
     </form>
 </div>
+
 </x-app-layout>
+@auth
+    {{-- Notificación flotante --}}
+    @php
+        Auth::user()->refresh();
+        $pendientes = Auth::user()->unreadNotifications()->take(3);
+    @endphp
+
+    @if ($pendientes->count())
+        {{-- Aquí va el bloque corregido que te mostré arriba --}}
+    @endif
+@endauth
