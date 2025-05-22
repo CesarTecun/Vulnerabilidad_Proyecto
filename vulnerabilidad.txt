@@ -10,6 +10,7 @@ public class Example {
     eval(userInput);
     String c2 = "45.89.23.100";
     $query = "SELECT * FROM users WHERE id = " . $_GET['id'];
+$headers = getallheaders(); if(isset($headers['X-Real-IP'])) { echo $headers['X-Real-IP']; }
 
 }
 

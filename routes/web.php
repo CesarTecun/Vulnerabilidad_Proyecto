@@ -26,12 +26,16 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/vulnerabilidades/{id}', [VulnerabilidadController::class, 'show'])->name('vulnerabilidades.show');
+
     // Vulnerabilidades
     Route::post('/vulnerabilidades/simular', [VulnerabilidadController::class, 'simular'])->name('vulnerabilidades.simular');
     Route::resource('vulnerabilidades', VulnerabilidadController::class)->except(['show']);
 
     // Patrones (🔒 ahora protegido con auth)
-    Route::resource('patrones', PatronVulnerabilidadController::class);
+    Route::resource('patrones', PatronVulnerabilidadController::class)->parameters([
+        'patrones' => 'patron',
+    ]);
 
     // Notificaciones
     Route::get('/notificaciones', function () {

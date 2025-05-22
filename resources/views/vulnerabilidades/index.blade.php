@@ -7,10 +7,10 @@
         {{-- Barra superior de acciones --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             {{-- Botón de creación --}}
-            <a href="{{ route('vulnerabilidades.create') }}"
-               class="inline-flex items-center px-6 py-4 text-gray-700 dark:text-gray-300 font-medium rounded-md transition-all duration-200 ease-in-out dark:bg-blue-500 dark:hover:bg-blue-600">
-                ➕ Nueva Vulnerabilidad
-            </a>
+        <a href="{{ route('patrones.create') }}"
+        class="inline-flex items-center px-6 py-4 text-white dark:text-gray-100 font-medium rounded-md bg-green-600 hover:bg-green-700 transition-all duration-200 ease-in-out">
+            ➕ Nuevo Patrón de Vulnerabilidad
+        </a>
 
             {{-- Formulario de escaneo --}}
             <form method="POST" action="{{ route('vulnerabilidades.detectar') }}" enctype="multipart/form-data" 
@@ -18,7 +18,7 @@
                 @csrf
                 <div class="relative flex-grow">
                     <input type="file" name="archivo" required
-                        class="w-full text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class=" w-full text-sm  dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <button type="submit"
                         class="inline-flex items-center justify-center px-6 py-4 text-gray-700 dark:text-gray-300 hover:bg-indigo-700  font-medium rounded-md transition-all duration-200 ease-in-out">
@@ -54,7 +54,7 @@
 
         {{-- Alertas --}}
         @if(session('success'))
-            <div class="p-4 rounded-md bg-green-50 dark:bg-green-900 border-l-4 border-green-500 dark:border-green-300">
+            <div class="p-4  px-4 py-2 text-gray-500 rounded-md bg-green-50 dark:bg-green-900 border-l-4 border-green-500 dark:border-green-300">
                 <div class="flex">
                     <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-green-400 dark:text-green-300" viewBox="0 0 20 20" fill="currentColor">
@@ -85,7 +85,9 @@
         <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
             @forelse ($vulnerabilidades as $v)
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800 transition-colors duration-150">
-                <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100 truncate">{{ $v->nombre }}</td>
+                <td class="px-4 py-2 text-gray-500 whitespace-nowrap text-blue-600 dark:text-blue-400 underline cursor-pointer truncate">
+                    <a href="{{ route('vulnerabilidades.show', $v->id) }}">{{ $v->nombre }}</a>
+                </td>
                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300 truncate">{{ $v->componente_afectado }}</td>
                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $v->criticidad }}</td>
                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ $v->cvss }}</td>

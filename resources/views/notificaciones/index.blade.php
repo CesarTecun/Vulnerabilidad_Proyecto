@@ -25,34 +25,54 @@
             @endif
 
             <div class="space-y-4">
-                @forelse ($notificaciones as $n)
-                    <div class="p-4 rounded-lg shadow transition-all duration-200 border border-gray-200 dark:border-gray-600
-                              {{ $n->read_at ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : 'bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800' }}">
-                        <p class="text-gray-800 dark:text-gray-100">
-                            {{ $n->data['mensaje'] }}
-                        </p>
+@forelse ($notificaciones as $n)
+    <div class="p-5 rounded-xl border shadow-sm transition-all duration-200 
+                {{ $n->read_at 
+                    ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md' 
+                    : 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-800' }}">
 
-                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                            <span class="text-gray-500 dark:text-gray-400">
-                                {{ $n->created_at->diffForHumans() }}
-                            </span>
-                            
-                            @if (is_null($n->read_at))
-                                <form action="{{ route('notificaciones.marcar', $n->id) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" 
-                                            class="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 hover:underline text-xs font-medium focus:outline-none">
-                                        Marcar como leída
-                                    </button>
-                                </form>
-                            @else
-                                <span class="text-xs text-green-600 dark:text-green-400 font-medium">
-                                    Leída
-                                </span>
-                            @endif
-                        </div>
+        <div class="flex items-center gap-3">
+            <div class="shrink-0">
+                <svg class="w-6 h-6 {{ $n->read_at ? 'text-gray-400 dark:text-gray-500' : 'text-blue-600 dark:text-blue-300' }}" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-12 0v3.159c0 
+                        .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+            </div>
+
+            <div class="flex-grow">
+                <p class="text-gray-800 dark:text-gray-100">
+                    {{ $n->data['mensaje'] }}
+                </p>
+                <div class="mt-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center gap-1">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{{ $n->created_at->diffForHumans() }}</span>
                     </div>
-                @empty
+
+                    @if (is_null($n->read_at))
+                        <form action="{{ route('notificaciones.marcar', $n->id) }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700">
+                                Marcar como leída
+                            </button>
+                        </form>
+                    @else
+                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-green-600 dark:text-green-300 bg-green-100 dark:bg-green-800 rounded-full">
+                            Leída
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+@empty
+
                     <div class="p-6 text-center bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                         <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
