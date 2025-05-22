@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold">Mi título</h2>
+        <h2 class="px-6 py-4 text-gray-700 dark:text-gray-300 text-xl font-semibold">Formulario</h2>
     </x-slot>
 
     <div class="py-6">

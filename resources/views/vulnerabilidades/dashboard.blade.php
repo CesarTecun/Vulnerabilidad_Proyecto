@@ -22,99 +22,122 @@
             </div>
         </div>
     </x-slot>
-
-    <div class="py-10">
+        <div class="py-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-            {{-- ░░ ACCIONES RÁPIDAS ░░ --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {{-- Botón: Nueva vulnerabilidad --}}
-                <a href="{{ route('vulnerabilidades.create') }}"
-                    class="bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-xl p-5 flex flex-col items-center justify-center hover:from-blue-700 hover:to-blue-600 transition-all duration-300 ease-in-out shadow hover:shadow-md">
-                    <div class="p-3 bg-white/20 rounded-full mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                    </div>
-                    <div class="text-lg font-semibold">Nueva vulnerabilidad</div>
-                    <div class="text-xs opacity-80 mt-1">Agregar manualmente</div>
-                </a>
-
-                {{-- Botón: Simular escaneo --}}
-                <form method="POST" action="{{ route('vulnerabilidades.simular') }}">
-                    @csrf
-                    <button type="submit" aria-label="Simular escaneo"
-                        class="w-full bg-gradient-to-br from-indigo-600 to-indigo-500 text-white rounded-xl p-5 hover:from-indigo-700 hover:to-indigo-600 transition-all duration-300 ease-in-out shadow hover:shadow-md flex flex-col items-center justify-center">
-                        <div class="p-3 bg-white/20 rounded-full mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                        </div>
-                        <div class="text-lg font-semibold">Simular escaneo</div>
-                        <div class="text-xs opacity-80 mt-1">Ejecutar prueba</div>
-                    </button>
-                </form>
             </div>
+
+            
             {{-- ░░ TARJETAS RESUMEN ░░ --}}
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                @php
-                
-                    $cards = [
-                        ['label' => 'Total', 'value' => $total, 'color' => 'gray', 'icon' => '
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        '],
-                        ['label' => 'Críticas', 'value' => $altas, 'color' => 'red', 'icon' => '
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        '],
-                        ['label' => 'Cuarentena', 'value' => $cuarentena, 'color' => 'yellow', 'icon' => '
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                        '],
-                        ['label' => 'Corregidas', 'value' => $corregidas, 'color' => 'green', 'icon' => '
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        '],
-                        ['label' => 'Falsos Positivos', 'value' => $falsos_positivos, 'color' => 'purple', 'icon' => '
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        '],
-                    ];
-                @endphp
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    @php
+        $cards = [
+            ['label' => 'Total', 'value' => $total, 'color' => 'gray', 'icon' => '
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            '],
+            ['label' => 'Críticas', 'value' => $altas, 'color' => 'red', 'icon' => '
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            '],
+            ['label' => 'Cuarentena', 'value' => $cuarentena, 'color' => 'yellow', 'icon' => '
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            '],
+            ['label' => 'Corregidas', 'value' => $corregidas, 'color' => 'green', 'icon' => '
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            '],
+            ['label' => 'Falsos Positivos', 'value' => $falsos_positivos, 'color' => 'purple', 'icon' => '
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            '],
+        ];
+    @endphp
 
-                @foreach ($cards as $card)
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all duration-300 ease-in-out">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {{ $card['label'] }}
-                                </p>
-                                <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1">
-                                    {{ $card['value'] }}
-                                </p>
-                            </div>
-                            <div class="p-2 rounded-lg bg-{{ $card['color'] }}-100 dark:bg-{{ $card['color'] }}-900/50 text-{{ $card['color'] }}-600 dark:text-{{ $card['color'] }}-300">
-                                {!! $card['icon'] !!}
-                            </div>
-                        </div>
+    
 
-                        @if($loop->first)
-                        <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
-                                <span class="font-medium text-gray-700 dark:text-gray-300">3 nuevas</span> esta semana
-                            </p>
-                        </div>
-                        @endif
+{{-- ░░ ACCIONES Y RESUMEN EN UNA SOLA FILA (BOTONES A LA DERECHA) ░░ --}}
+<div class="flex flex-wrap gap-4 items-start mb-6">
+    {{-- Columna izquierda: Tarjetas resumen --}}
+    <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+        @foreach ($cards as $card)
+            <div class="bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 ease-in-out">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            {{ $card['label'] }}
+                        </p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1 text-balance">
+                            {{ $card['value'] }}
+                        </p>
                     </div>
-                @endforeach
+
+                    <div 
+                        class="@class([
+                            'p-2 rounded-xl',
+                            'bg-' . $card['color'] . '-100 dark:bg-' . $card['color'] . '-900/40',
+                            'text-' . $card['color'] . '-600 dark:text-' . $card['color'] . '-300'
+                        ])"
+                        aria-label="{{ $card['label'] }} icono"
+                    >
+                        <div class="[&_*]:fill-current [&_*]:stroke-current">
+                            {!! $card['icon'] !!}
+                        </div>
+                    </div>
+                </div>
+
+                @if ($loop->first)
+                    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                            <span class="inline-block w-2 h-2 mr-2 rounded-full bg-green-500"></span>
+                            <span><span class="font-semibold text-gray-700 dark:text-gray-300">3 nuevas</span> esta semana</span>
+                        </p>
+                    </div>
+                @endif
             </div>
+        @endforeach
+    </div>
+
+    {{-- Columna derecha: Botones --}}
+    <div class="flex flex-col justify-center gap-3 w-48">
+        {{-- Botón: Control de Patrones --}}
+        <a href="{{ route('patrones.index') }}"
+           class="bg-gradient-to-br from-pink-600 to-pink-500 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-xl flex flex-col items-center justify-center hover:from-pink-700 hover:to-pink-600 transition shadow hover:shadow-md">
+            <div class="p-2 bg-white/20 rounded-full mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <span class="font-semibold text-center leading-tight">Control<br>Vulnerabilidades</span>
+            <span class="text-xs opacity-80 mt-1 text-center">Gestión de patrones</span>
+        </a>
+
+        {{-- Botón: Simular escaneo --}}
+        <form method="POST" action="{{ route('vulnerabilidades.simular') }}">
+            @csrf
+            <button type="submit" aria-label="Simular escaneo"
+                class="w-full bg-gradient-to-br from-indigo-600 to-indigo-500 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-xl flex flex-col items-center justify-center hover:from-indigo-700 hover:to-indigo-600 transition shadow hover:shadow-md">
+                <div class="p-2 bg-white/20 rounded-full mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <span class="font-semibold text-center leading-tight">Simular<br>Escaneo</span>
+                <span class="text-xs opacity-80 mt-1 text-center">Ejecutar prueba</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
+
             {{-- ░░ GRÁFICO POR ESTADO ░░ --}}
             @if($porEstado && $porEstado->isNotEmpty())
             <div class="bg-white dark:bg-gray-800 p-6 shadow rounded-xl">
@@ -132,19 +155,22 @@
                         </select>
                     </div>
                 </div>
-                
                 <div class="relative">
                     {{-- Gráfico --}}
-                    <div id="chartContainer" class="relative h-96 flex items-center justify-center">
-                        <div id="loadingChart" class="absolute text-gray-400 dark:text-gray-500 z-0 flex flex-col items-center">
-                            <svg class="animate-spin h-8 w-8 text-gray-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Cargando gráfico...
-                        </div>
-                        <canvas id="chartEstado" class="relative z-10"></canvas>
-                    </div>
+<div class="flex flex-col lg:flex-row gap-6">
+    {{-- ░░ GRÁFICO (Derecha) ░░ --}}
+    <div id="chartContainer" class="w-full lg:w-1/2 relative h-96 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+        <div id="loadingChart" class="absolute text-gray-400 dark:text-gray-500 z-0 flex flex-col items-center">
+            <svg class="animate-spin h-8 w-8 text-gray-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Cargando gráfico...
+        </div>
+        <canvas id="chartEstado" class="relative z-10"></canvas>
+    </div>
+</div>
+
                     
                     {{-- Tabla --}}
                     <div id="tableContainer" class="hidden overflow-x-auto">

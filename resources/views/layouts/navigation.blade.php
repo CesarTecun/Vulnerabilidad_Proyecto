@@ -18,12 +18,9 @@
                     <x-nav-link :href="route('vulnerabilidades.index')" :active="request()->routeIs('vulnerabilidades.index')">
                         {{ __('Vulnerabilidades') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('vulnerabilidades.create')" :active="request()->routeIs('vulnerabilidades.create')">
-                        {{ __('Nueva Vulnerabilidad') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('vulnerabilidades.agrupadas')" :active="request()->routeIs('vulnerabilidades.index')">
-                        {{ __('Vulnerabilidades agrupadas') }}
-                    </x-nav-link>
+                <x-nav-link :href="route('patrones.index')" :active="request()->routeIs('patrones.*')">
+                    {{ __('Control Vulnerabilidades') }}
+                </x-nav-link>
                 </div>
             </div>
 

@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use App\Notifications\NuevaVulnerabilidadDetectada;
 use Illuminate\Support\Facades\Notification;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\AnalizadorVulnerabilidad;
 use Carbon\Carbon;
+use App\Models\PatronVulnerabilidad;
+
 
 
 class VulnerabilidadController extends Controller
@@ -198,41 +201,62 @@ class VulnerabilidadController extends Controller
     }
 
 
-    public function detectarDesdeArchivo(Request $request)
+public function detectarDesdeArchivo(Request $request)
 {
     $request->validate([
         'archivo' => 'required|file',
     ]);
 
-    // 1. Guardar archivo
+    // 1. Guardar archivo subido
     $file = $request->file('archivo');
     $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
 
-    // 2. Analizar
-    $analizador = new AnalizadorVulnerabilidad();
-    $vulnerabilidades = $analizador->escanear($path);
+    // 2. Leer contenido y patrones
+    $contenido = Storage::get($path);
+    $lineas = explode("\n", $contenido);
+    $patrones = PatronVulnerabilidad::all();
+    $detectadas = [];
 
-    foreach ($vulnerabilidades as $vuln) {
+    // 3. Buscar coincidencias
+    foreach ($patrones as $patron) {
+        foreach ($lineas as $i => $linea) {
+            if (@preg_match("/{$patron->regex}/", $linea, $match)) {
+                $detectadas[] = [
+                    'nombre' => $patron->nombre,
+                    'detalle' => $match[0],
+                    'criticidad' => $patron->criticidad,
+                    'archivo' => $path,
+                    'linea' => $i + 1,
+                    'fragmento' => trim($linea),
+                ];
+                break; // solo una coincidencia por patrón
+            }
+        }
+    }
+
+    // 4. Registrar vulnerabilidades detectadas
+    foreach ($detectadas as $vuln) {
         $registro = Vulnerabilidad::create([
             'nombre' => 'Vuln-' . strtoupper(Str::random(5)),
             'componente_afectado' => $vuln['archivo'],
             'criticidad' => $vuln['criticidad'],
             'estado' => 'Detectada',
-            'fecha_deteccion' => Carbon::now(),
+            'fecha_deteccion' => now(),
             'cvss' => $this->asignarCvss($vuln['criticidad']),
             'descripcion' => $vuln['nombre'] . ' | ' . $vuln['detalle'],
             'linea_detectada' => $vuln['linea'] ?? null,
             'fragmento_detectado' => $vuln['fragmento'] ?? null,
             'tipo' => $vuln['nombre'],
-
         ]);
-        
 
         auth()->user()->notify(new \App\Notifications\NuevaVulnerabilidadDetectada($registro->nombre));
     }
 
-    return redirect()->route('vulnerabilidades.index')->with('success', count($vulnerabilidades) . ' vulnerabilidades detectadas.');
+    return redirect()->route('vulnerabilidades.index')
+        ->with('success', count($detectadas) . ' vulnerabilidades detectadas.');
 }
+
+
 
 private function asignarCvss($criticidad)
 {
