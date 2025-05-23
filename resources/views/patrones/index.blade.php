@@ -20,7 +20,7 @@
         </div>
 
         <div class="overflow-x-auto bg-white dark:bg-gray-800 shadow rounded">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table class="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                 <thead class="bg-gray-100 dark:bg-gray-700">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nombre</th>
@@ -29,7 +29,7 @@
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="divide-x divide-gray-200 dark:divide-gray-700">
                     @forelse ($patrones as $patron)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{{ $patron->nombre }}</td>
