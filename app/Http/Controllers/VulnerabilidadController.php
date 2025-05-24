@@ -227,42 +227,44 @@ class VulnerabilidadController extends Controller
 
 
 
+    
 
-
-
-  public function detectarDesdeArchivo(Request $request)
+public function detectarDesdeArchivo(Request $request)
 {
     $request->validate(['archivo' => 'required|file']);
 
     $file = $request->file('archivo');
     $originalName = $file->getClientOriginalName();
     $extension = $file->getClientOriginalExtension();
+
     logger('📁 Archivo recibido: ' . $originalName);
     logger('📦 Extensión detectada: ' . $extension);
 
-    $archivosContenido = $extension === 'zip'
+    $contenidoTotal = $extension === 'zip'
         ? $this->procesarZip($file)
-        : [$originalName => $this->procesarArchivoSimple($file)];
+        : $this->procesarArchivoSimple($file);
 
-    if (empty($archivosContenido)) {
+    if (empty(trim($contenidoTotal))) {
         return back()->withErrors(['archivo' => '⚠️ Archivo vacío o sin contenido útil']);
     }
 
-    [$descripcion, $fragmentos, $lineasDetectadas] = $this->analizarContenido($archivosContenido);
+    [$descripcion, $fragmentos, $lineasDetectadas, $criticidadFinal] = $this->analizarContenido($contenidoTotal);
 
-    if (empty($lineasDetectadas)) {
-        return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
-    }
+if (empty($lineasDetectadas) && empty($fragmentos)) {
+    return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
+}
+
 
     $registro = Vulnerabilidad::create([
         'nombre' => 'VULN-' . strtoupper(Str::random(5)),
         'componente_afectado' => $originalName,
-        'criticidad' => 'Alta',
+        'criticidad' => $criticidadFinal,
         'estado' => 'Detectada',
         'fecha_deteccion' => now(),
-        'cvss' => 9,
+        'cvss' => $this->asignarCvss($criticidadFinal),
         'descripcion' => trim($descripcion),
-        'linea_detectada' => $lineasDetectadas[0],
+        'linea_detectada' => $lineasDetectadas[0] ?? null,
+
         'fragmento_detectado' => implode("\n", $fragmentos),
         'tipo' => $extension === 'zip' ? 'Carpeta' : 'Archivo',
     ]);
@@ -270,12 +272,15 @@ class VulnerabilidadController extends Controller
     auth()->user()->notify(new NuevaVulnerabilidadDetectada(
         "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)",
         $registro->id,
-        'alta'
+        strtolower($criticidadFinal)
     ));
 
     return redirect()->route('vulnerabilidades.index')
         ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas.');
 }
+
+
+
 
 private function procesarZip($file)
 {
@@ -286,13 +291,13 @@ private function procesarZip($file)
 
     if (!file_exists($fullPath)) {
         logger('❌ ZIP no encontrado: ' . $fullPath);
-        return [];
+        return '';
     }
 
     $zip = new \ZipArchive;
     if ($zip->open($fullPath) !== TRUE) {
         logger('❌ Fallo al abrir ZIP: ' . $fullPath);
-        return [];
+        return '';
     }
 
     $zip->extractTo($extractPath);
@@ -304,18 +309,16 @@ private function procesarZip($file)
 
     logger('📄 Archivos analizables: ' . $archivos->count());
 
-    $mapaContenido = [];
-
+    $contenido = '';
     foreach ($archivos as $archivo) {
-        $relative = $archivo->getRelativePathname();
-        logger("📘 Leyendo: {$relative}");
-        $mapaContenido[$relative] = File::get($archivo->getPathname());
+        logger('📘 Leyendo: ' . $archivo->getPathname());
+        $contenido .= File::get($archivo->getPathname()) . "\n";
     }
 
     File::deleteDirectory($extractPath);
     Storage::delete($storedPath);
 
-    return $mapaContenido;
+    return $contenido;
 }
 
 private function procesarArchivoSimple($file)
@@ -325,35 +328,63 @@ private function procesarArchivoSimple($file)
     return Storage::get($path);
 }
 
-private function analizarContenido($archivosContenido)
+
+
+private function analizarContenido($contenidoTotal)
 {
+    logger('🔍 Primeras líneas del contenido: ' . substr($contenidoTotal, 0, 300));
+
+    $lineas = explode("\n", $contenidoTotal);
+    $contenidoBloque = implode("\n", $lineas); // contenido completo como bloque
+
+    $patrones = PatronVulnerabilidad::all();
+
     $descripcion = '';
     $fragmentos = [];
     $lineasDetectadas = [];
+    $criticidadesDetectadas = [];
 
-    $patrones = PatronVulnerabilidad::all();
-    logger('🧬 Patrones: ' . $patrones->pluck('regex')->implode(', '));
-
-    foreach ($archivosContenido as $archivo => $contenido) {
-        $lineas = explode("\n", $contenido);
-        foreach ($patrones as $patron) {
-            foreach ($lineas as $i => $linea) {
-                if (@preg_match("/{$patron->regex}/", $linea, $match)) {
-                    $descripcion .= "🔸 {$patron->nombre} (Archivo: {$archivo}, Línea " . ($i + 1) . "): {$match[0]}\n";
-                    $fragmentos[] = "{$archivo} [Línea " . ($i + 1) . "]: " . trim($linea);
-                    $lineasDetectadas[] = $i + 1;
-                    logger("🎯 Coincidencia en {$archivo}: patrón {$patron->regex} en línea " . ($i + 1));
-                }
+    foreach ($patrones as $patron) {
+        // 🔍 buscar en modo línea
+        foreach ($lineas as $i => $linea) {
+            if (@preg_match("/{$patron->regex}/", $linea, $match)) {
+                $descripcion .= "🔸 {$patron->nombre} (Línea " . ($i + 1) . "): {$match[0]}\n";
+                $fragmentos[] = "Línea " . ($i + 1) . ": " . trim($linea);
+                $lineasDetectadas[] = $i + 1;
+                $criticidadesDetectadas[] = $patron->criticidad ?? 'Media';
+                logger("🎯 Coincidencia LÍNEA: {$patron->regex} en línea " . ($i + 1));
             }
+        }
+
+        // 🔍 buscar en modo bloque
+        if (@preg_match("/{$patron->regex}/", $contenidoBloque, $match)) {
+            $descripcion .= "🔸 {$patron->nombre} (Coincidencia en bloque): {$match[0]}\n";
+            $fragmentos[] = "Coincidencia en bloque: " . trim($match[0]);
+            $criticidadesDetectadas[] = $patron->criticidad ?? 'Media';
+            logger("🎯 Coincidencia BLOQUE: {$patron->regex}");
         }
     }
 
-    return [$descripcion, $fragmentos, $lineasDetectadas];
+    $criticidadFinal = $this->resolverCriticidad($criticidadesDetectadas);
+
+    return [$descripcion, $fragmentos, $lineasDetectadas, $criticidadFinal];
 }
 
 
 
 
+
+private function resolverCriticidad(array $criticidades): string
+{
+    if (in_array('Alta', $criticidades)) {
+        return 'Alta';
+    } elseif (in_array('Media', $criticidades)) {
+        return 'Media';
+    } elseif (in_array('Baja', $criticidades)) {
+        return 'Baja';
+    }
+    return 'Media'; // por defecto
+}
 
 
 
