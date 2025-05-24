@@ -67,12 +67,12 @@
                 </div>
 
                 @if ($vulnerabilidad->descripcion)
-                    <div class="mt-6">
+                    <div class="mt-8">
                         <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center">
                             <span class="mr-2">📝</span> Descripción
                         </h4>
                         <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 whitespace-pre-line">
-                            {!! nl2br(e($vulnerabilidad->descripcion)) !!}
+                            <pre class="whitespace-pre-wrap text-sm leading-relaxed font-mono">{{ $vulnerabilidad->descripcion }}</pre>
                         </div>
                     </div>
                 @endif

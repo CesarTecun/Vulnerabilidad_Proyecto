@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use App\Models\PatronVulnerabilidad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use ZipArchive;
+use Illuminate\Support\Facades\File; 
 
 
 
@@ -225,93 +226,32 @@ class VulnerabilidadController extends Controller
 
 
 
-public function detectarDesdeArchivo(Request $request)
+
+
+
+
+  public function detectarDesdeArchivo(Request $request)
 {
-    $request->validate([
-        'archivo' => 'required|file',
-    ]);
+    $request->validate(['archivo' => 'required|file']);
 
     $file = $request->file('archivo');
     $originalName = $file->getClientOriginalName();
     $extension = $file->getClientOriginalExtension();
-    $contenidoTotal = '';
+    logger('📁 Archivo recibido: ' . $originalName);
+    logger('📦 Extensión detectada: ' . $extension);
 
-    logger('\ud83d\udcc1 Archivo recibido: ' . $originalName);
-    logger('\ud83d\udce6 Extensi\u00f3n detectada: ' . $extension);
+    $archivosContenido = $extension === 'zip'
+        ? $this->procesarZip($file)
+        : [$originalName => $this->procesarArchivoSimple($file)];
 
-    if ($extension === 'zip') {
-        $path = $file->storeAs('vulnerabilidades', 'zip_' . time() . '.zip');
-        $fullPath = storage_path('app/' . $path);
-        $extractPath = storage_path('app/temp_extract_' . time());
-
-        $zip = new ZipArchive;
-        if ($zip->open($fullPath) === TRUE) {
-            $success = $zip->extractTo($extractPath);
-            $zip->close();
-            logger('\u2705 ZIP abierto y extra\u00eddo: ' . ($success ? 'ok' : 'fallo'));
-        } else {
-            logger('\u274c Fallo al abrir ZIP: ' . $fullPath);
-            return back()->withErrors(['archivo' => '\u274c No se pudo abrir el archivo ZIP.']);
-        }
-
-        $relativePath = Str::after($extractPath, storage_path('app') . '/');
-        logger('\ud83d\udcc2 Ruta relativa: ' . $relativePath);
-
-        $archivos = collect(Storage::allFiles($relativePath))
-            ->filter(fn($f) => preg_match('/\.(php|js|html|py|java|txt)$/', $f));
-
-        logger('\ud83d\udcc4 Archivos analizables: ' . $archivos->count());
-
-        if ($archivos->isEmpty()) {
-            Storage::deleteDirectory($relativePath);
-            Storage::delete($path);
-            return back()->withErrors(['archivo' => '\u26a0\ufe0f ZIP sin archivos analizables.']);
-        }
-
-        foreach ($archivos as $archivo) {
-            logger('\ud83d\udcc3 Leyendo archivo: ' . $archivo);
-            $contenidoTotal .= Storage::get($archivo) . "\n";
-        }
-
-        Storage::deleteDirectory($relativePath);
-        Storage::delete($path);
-    } else {
-        $path = $file->storeAs('vulnerabilidades', $originalName);
-        $contenidoTotal = Storage::get($path);
-        logger('\ud83d\udcc4 Archivo simple le\u00eddo');
+    if (empty($archivosContenido)) {
+        return back()->withErrors(['archivo' => '⚠️ Archivo vacío o sin contenido útil']);
     }
 
-    if (empty(trim($contenidoTotal))) {
-        return back()->withErrors(['archivo' => '\u26a0\ufe0f Archivo vac\u00edo o sin texto \u00fatil.']);
-    }
-
-    logger('\ud83d\udd0d Primeras l\u00edneas del contenido: ' . substr($contenidoTotal, 0, 500));
-
-    $lineas = explode("\n", $contenidoTotal);
-    $patrones = PatronVulnerabilidad::all();
-
-    logger('\ud83e\uddec Patrones cargados: ' . $patrones->pluck('regex')->implode(', '));
-
-    $descripcion = '';
-    $fragmentos = [];
-    $lineasDetectadas = [];
-
-    foreach ($patrones as $patron) {
-        foreach ($lineas as $i => $linea) {
-            if (@preg_match("/{$patron->regex}/", $linea, $match)) {
-                $descripcion .= "\ud83d\udd39 {$patron->nombre} (L\u00ednea " . ($i + 1) . "): {$match[0]}\n";
-                $fragmentos[] = trim($linea);
-                $lineasDetectadas[] = $i + 1;
-                logger("\ud83c\udf1f Coincidencia: {$patron->regex} en l\u00ednea " . ($i + 1));
-            }
-        }
-    }
-
-    logger('\u2705 Total coincidencias: ' . count($lineasDetectadas));
+    [$descripcion, $fragmentos, $lineasDetectadas] = $this->analizarContenido($archivosContenido);
 
     if (empty($lineasDetectadas)) {
-        return redirect()->route('vulnerabilidades.index')
-            ->with('success', '\u2705 No se detectaron vulnerabilidades.');
+        return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
     }
 
     $registro = Vulnerabilidad::create([
@@ -327,21 +267,97 @@ public function detectarDesdeArchivo(Request $request)
         'tipo' => $extension === 'zip' ? 'Carpeta' : 'Archivo',
     ]);
 
-    auth()->user()->notify(
-        new NuevaVulnerabilidadDetectada(
-            "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)",
-            $registro->id,
-            'alta'
-        )
-    );
+    auth()->user()->notify(new NuevaVulnerabilidadDetectada(
+        "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)",
+        $registro->id,
+        'alta'
+    ));
 
     return redirect()->route('vulnerabilidades.index')
-        ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas en ' . ($extension === 'zip' ? 'la carpeta' : 'el archivo') . '.');
+        ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas.');
+}
+
+private function procesarZip($file)
+{
+    $filename = 'zip_' . time() . '.zip';
+    $storedPath = $file->storeAs('vulnerabilidades', $filename);
+    $fullPath = Storage::disk('local')->path($storedPath);
+    $extractPath = storage_path('app/temp_extract_' . time());
+
+    if (!file_exists($fullPath)) {
+        logger('❌ ZIP no encontrado: ' . $fullPath);
+        return [];
+    }
+
+    $zip = new \ZipArchive;
+    if ($zip->open($fullPath) !== TRUE) {
+        logger('❌ Fallo al abrir ZIP: ' . $fullPath);
+        return [];
+    }
+
+    $zip->extractTo($extractPath);
+    $zip->close();
+    logger('✅ ZIP extraído en: ' . $extractPath);
+
+    $archivos = collect(File::allFiles($extractPath))
+        ->filter(fn($f) => preg_match('/\.(php|js|html|py|java|txt)$/', $f->getFilename()));
+
+    logger('📄 Archivos analizables: ' . $archivos->count());
+
+    $mapaContenido = [];
+
+    foreach ($archivos as $archivo) {
+        $relative = $archivo->getRelativePathname();
+        logger("📘 Leyendo: {$relative}");
+        $mapaContenido[$relative] = File::get($archivo->getPathname());
+    }
+
+    File::deleteDirectory($extractPath);
+    Storage::delete($storedPath);
+
+    return $mapaContenido;
+}
+
+private function procesarArchivoSimple($file)
+{
+    $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
+    logger('📄 Archivo simple leído');
+    return Storage::get($path);
+}
+
+private function analizarContenido($archivosContenido)
+{
+    $descripcion = '';
+    $fragmentos = [];
+    $lineasDetectadas = [];
+
+    $patrones = PatronVulnerabilidad::all();
+    logger('🧬 Patrones: ' . $patrones->pluck('regex')->implode(', '));
+
+    foreach ($archivosContenido as $archivo => $contenido) {
+        $lineas = explode("\n", $contenido);
+        foreach ($patrones as $patron) {
+            foreach ($lineas as $i => $linea) {
+                if (@preg_match("/{$patron->regex}/", $linea, $match)) {
+                    $descripcion .= "🔸 {$patron->nombre} (Archivo: {$archivo}, Línea " . ($i + 1) . "): {$match[0]}\n";
+                    $fragmentos[] = "{$archivo} [Línea " . ($i + 1) . "]: " . trim($linea);
+                    $lineasDetectadas[] = $i + 1;
+                    logger("🎯 Coincidencia en {$archivo}: patrón {$patron->regex} en línea " . ($i + 1));
+                }
+            }
+        }
+    }
+
+    return [$descripcion, $fragmentos, $lineasDetectadas];
 }
 
 
 
-    
+
+
+
+
+
 
 
 
