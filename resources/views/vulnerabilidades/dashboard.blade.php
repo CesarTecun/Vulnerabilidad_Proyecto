@@ -5,7 +5,6 @@
             <div>
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                        <span class="text-2xl">🛡️</span>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
                         Dashboard de Vulnerabilidades
@@ -199,9 +198,9 @@
             @endif
             {{-- ░░ ÚLTIMAS VULNERABILIDADES DETECTADAS ░░ --}}
             <div class="bg-white dark:bg-gray-800 p-6 shadow rounded-xl">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">🕵️ Últimas Vulnerabilidades</h2>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Últimas Vulnerabilidades</h2>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                    <table class="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                         <thead class="bg-gray-100 dark:bg-gray-700">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">#</th>

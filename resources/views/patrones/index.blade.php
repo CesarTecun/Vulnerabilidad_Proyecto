@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-            📂 Patrones de Vulnerabilidad
+            Patrones de Vulnerabilidad
         </h2>
     </x-slot>
 

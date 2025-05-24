@@ -10,46 +10,51 @@ class NuevaVulnerabilidadDetectada extends Notification
 {
     use Queueable;
 
-    protected $nombre;
+    protected string $nombre;
+    protected int $vulnerabilidadId;
+    protected string $prioridad;
 
     /**
-     * Crea una nueva instancia de notificación.
+     * Crear una nueva instancia de notificación.
      */
-    public function __construct(string $nombre)
+    public function __construct(string $nombre, int $vulnerabilidadId, string $prioridad = 'media')
     {
         $this->nombre = $nombre;
+        $this->vulnerabilidadId = $vulnerabilidadId;
+        $this->prioridad = $prioridad; // 'alta', 'media', 'baja'
     }
 
     /**
-     * Canales por los que se entregará la notificación.
+     * Canales por los que se enviará la notificación.
      */
     public function via(object $notifiable): array
     {
-        return ['database']; // Puedes agregar 'mail' si deseas correo también
+        return ['database']; // Puedes añadir 'mail' si deseas
     }
 
     /**
-     * Representación para correo (opcional).
+     * Opcional: para envío por correo (si lo activas)
      */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('Nueva vulnerabilidad detectada')
             ->line("Se ha detectado una nueva vulnerabilidad: {$this->nombre}.")
-            ->action('Ver vulnerabilidades', url('/vulnerabilidades'))
-            ->line('Por favor revisa los detalles y actúa según corresponda.');
+            ->action('Ver informe', route('vulnerabilidades.show', $this->vulnerabilidadId))
+            ->line('Por favor revisa los detalles.');
     }
 
     /**
-     * Representación para base de datos (notificación interna).
+     * Datos que se guardarán en la base de datos.
      */
     public function toArray(object $notifiable): array
     {
         return [
             'mensaje' => "🔔 Nueva vulnerabilidad detectada: {$this->nombre}.",
-            'url' => route('vulnerabilidades.index'),
+            'url' => route('vulnerabilidades.show', $this->vulnerabilidadId),
             'tipo' => 'vulnerabilidad',
-            'nombre' => $this->nombre
+            'nombre' => $this->nombre,
+            'prioridad' => $this->prioridad
         ];
     }
 }

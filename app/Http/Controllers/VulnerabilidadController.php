@@ -47,17 +47,17 @@ class VulnerabilidadController extends Controller
     /**
      * Mostrar el formulario para crear una nueva vulnerabilidad.
      */
-public function create(Request $request)
-{
-    $patron_id = $request->query('patron'); // o $request->patron;
-    $patron = null;
+    public function create(Request $request)
+    {
+        $patron_id = $request->query('patron'); // o $request->patron;
+        $patron = null;
 
-    if ($patron_id) {
-        $patron = \App\Models\PatronVulnerabilidad::find($patron_id);
+        if ($patron_id) {
+            $patron = \App\Models\PatronVulnerabilidad::find($patron_id);
+        }
+
+        return view('vulnerabilidades.create', compact('patron'));
     }
-
-    return view('vulnerabilidades.create', compact('patron'));
-}
 
 
     /**
@@ -73,7 +73,7 @@ public function create(Request $request)
             'fecha_deteccion' => 'nullable|date',
             'cvss' => 'nullable|numeric|min:0|max:10',
         ]);
-    
+
         $vulnerabilidad = Vulnerabilidad::create([
             'nombre' => $request->nombre,
             'componente_afectado' => $request->componente_afectado,
@@ -83,11 +83,16 @@ public function create(Request $request)
             'cvss' => $request->cvss,
             'descripcion' => $request->descripcion,
         ]);
-    
-        // ✅ Enviar notificación al usuario actual
-        auth()->user()->notify(new NuevaVulnerabilidadDetectada($vulnerabilidad->nombre));
+
+        auth()->user()->notify(new NuevaVulnerabilidadDetectada(
+            $vulnerabilidad->nombre,
+            $vulnerabilidad->id,
+            strtolower($vulnerabilidad->criticidad)
+        ));
+
         return redirect()->route('vulnerabilidades.index')->with('success', 'Vulnerabilidad registrada correctamente.');
     }
+
     
     
     public function dashboard()
@@ -121,26 +126,28 @@ public function create(Request $request)
             'cvss' => rand(7, 10),
             'descripcion' => 'Vulnerabilidad generada automáticamente.',
         ]);
-        
-        // ✅ Notificar al usuario autenticado
-        auth()->user()->notify(new \App\Notifications\NuevaVulnerabilidadDetectada($vulnerabilidad->nombre));
-        
-        return redirect()->route('dashboard')->with('nueva_notificacion', true);
 
-        
+        auth()->user()->notify(new NuevaVulnerabilidadDetectada(
+            $vulnerabilidad->nombre,
+            $vulnerabilidad->id,
+            'alta'
+        ));
+
+        return redirect()->route('dashboard')->with('nueva_notificacion', true);
     }
+
     
 
 
     /**
      * Mostrar una vulnerabilidad específica (pendiente de implementar).
      */
-public function show($id)
-{
-    $vulnerabilidad = Vulnerabilidad::findOrFail($id);
+    public function show($id)
+    {
+        $vulnerabilidad = Vulnerabilidad::findOrFail($id);
 
-    return view('vulnerabilidades.show', compact('vulnerabilidad'));
-}
+        return view('vulnerabilidades.show', compact('vulnerabilidad'));
+    }
 
 
     /**
@@ -215,75 +222,78 @@ public function show($id)
 
 
 
-public function detectarDesdeArchivo(Request $request)
-{
-    $request->validate([
-        'archivo' => 'required|file',
-    ]);
+    public function detectarDesdeArchivo(Request $request)
+    {
+        $request->validate([
+            'archivo' => 'required|file',
+        ]);
 
-    // 1. Guardar archivo
-    $file = $request->file('archivo');
-    $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
+        // 1. Guardar archivo
+        $file = $request->file('archivo');
+        $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
 
-    // 2. Leer contenido y patrones
-    $contenido = Storage::get($path);
-    $lineas = explode("\n", $contenido);
-    $patrones = PatronVulnerabilidad::all();
+        // 2. Leer contenido y patrones
+        $contenido = Storage::get($path);
+        $lineas = explode("\n", $contenido);
+        $patrones = PatronVulnerabilidad::all();
 
-    $descripcion = '';
-    $fragmentos = [];
-    $lineasDetectadas = [];
+        $descripcion = '';
+        $fragmentos = [];
+        $lineasDetectadas = [];
 
-    foreach ($patrones as $patron) {
-        foreach ($lineas as $i => $linea) {
-            if (@preg_match("/{$patron->regex}/", $linea, $match)) {
-                $descripcion .= "🔸 {$patron->nombre} (Línea ".($i+1)."): {$match[0]}\n";
-                $fragmentos[] = trim($linea);
-                $lineasDetectadas[] = $i + 1;
+        foreach ($patrones as $patron) {
+            foreach ($lineas as $i => $linea) {
+                if (@preg_match("/{$patron->regex}/", $linea, $match)) {
+                    $descripcion .= "🔸 {$patron->nombre} (Línea ".($i+1)."): {$match[0]}\n";
+                    $fragmentos[] = trim($linea);
+                    $lineasDetectadas[] = $i + 1;
+                }
             }
         }
+
+        if (empty($lineasDetectadas)) {
+            return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
+        }
+
+        // 3. Crear una sola vulnerabilidad consolidada
+        $registro = Vulnerabilidad::create([
+            'nombre' => 'Vuln-' . strtoupper(Str::random(5)),
+            'componente_afectado' => $path,
+            'criticidad' => 'Alta', // opcional: podrías calcular mayor criticidad real
+            'estado' => 'Detectada',
+            'fecha_deteccion' => now(),
+            'cvss' => 9, // opcional: podrías aplicar lógica más compleja
+            'descripcion' => trim($descripcion),
+            'linea_detectada' => $lineasDetectadas[0],
+            'fragmento_detectado' => implode("\n", $fragmentos),
+            'tipo' => 'Múltiple',
+        ]);
+
+        // 4. Notificación única al usuario
+        auth()->user()->notify(
+            new \App\Notifications\NuevaVulnerabilidadDetectada(
+                "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)", // nombre
+                $registro->id,                                                      // ID
+                'alta'                                                              // prioridad
+            )
+        );
+
+
+        return redirect()->route('vulnerabilidades.index')
+            ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas en un solo archivo.');
     }
 
-    if (empty($lineasDetectadas)) {
-        return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
+
+
+    private function asignarCvss($criticidad)
+    {
+        return match (strtolower($criticidad)) {
+            'alta' => rand(7, 10),
+            'media' => rand(4, 6),
+            'baja' => rand(1, 3),
+            default => 5,
+        };
     }
-
-    // 3. Crear una sola vulnerabilidad consolidada
-    $registro = Vulnerabilidad::create([
-        'nombre' => 'Vuln-' . strtoupper(Str::random(5)),
-        'componente_afectado' => $path,
-        'criticidad' => 'Alta', // opcional: podrías calcular mayor criticidad real
-        'estado' => 'Detectada',
-        'fecha_deteccion' => now(),
-        'cvss' => 9, // opcional: podrías aplicar lógica más compleja
-        'descripcion' => trim($descripcion),
-        'linea_detectada' => $lineasDetectadas[0],
-        'fragmento_detectado' => implode("\n", $fragmentos),
-        'tipo' => 'Múltiple',
-    ]);
-
-    // 4. Notificación única al usuario
-    auth()->user()->notify(
-        new \App\Notifications\NuevaVulnerabilidadDetectada(
-            "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)"
-        )
-    );
-
-    return redirect()->route('vulnerabilidades.index')
-        ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas en un solo archivo.');
-}
-
-
-
-private function asignarCvss($criticidad)
-{
-    return match (strtolower($criticidad)) {
-        'alta' => rand(7, 10),
-        'media' => rand(4, 6),
-        'baja' => rand(1, 3),
-        default => 5,
-    };
-}
 
     
 }

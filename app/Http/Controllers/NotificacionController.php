@@ -10,11 +10,27 @@ class NotificacionController extends Controller
     /**
      * Mostrar todas las notificaciones del usuario.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $notificaciones = Auth::user()->notifications()->paginate(10);
-        return view('notificaciones.index', compact('notificaciones'));
+        $user = Auth::user();
+
+        // Ordenar por prioridad: alta > media > baja, luego por fecha
+        $notificaciones = $user->notifications()
+            ->get()
+            ->sortByDesc(function ($n) {
+                return match($n->data['prioridad'] ?? 'media') {
+                    'alta' => 3,
+                    'media' => 2,
+                    'baja' => 1,
+                    default => 0
+                };
+            });
+
+        return view('notificaciones.index', [
+            'notificaciones' => $notificaciones
+        ]);
     }
+
 
     /**
      * Marcar una notificación como leída.
