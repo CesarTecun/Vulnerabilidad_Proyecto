@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: vulnerabilidad-laravel
+    env: docker
+    plan: free
+    autoDeploy: true
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        value: https://vulnerabilidad-laravel.onrender.com
