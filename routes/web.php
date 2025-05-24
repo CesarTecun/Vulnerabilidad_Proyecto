@@ -12,6 +12,9 @@ Route::get('/', function () {
 // Fuera del grupo auth porque es usado antes de autenticarse
 Route::post('/vulnerabilidades/detectar-archivo', [VulnerabilidadController::class, 'detectarDesdeArchivo'])
     ->name('vulnerabilidades.detectar');
+    
+Route::get('/vulnerabilidades/{id}/pdf', [VulnerabilidadController::class, 'exportarPdf'])
+    ->name('vulnerabilidades.pdf');
 
 // Ruta especial sin auth
 Route::get('/notificaciones/marcar/{id}', [App\Http\Controllers\NotificacionController::class, 'marcarYRedirigir'])

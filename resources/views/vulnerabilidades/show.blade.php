@@ -105,13 +105,19 @@
             
             <!-- Pie de tarjeta -->
             <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600 flex justify-end">
-                <a href="{{ route('vulnerabilidades.index') }}"
+            <a href="{{ route('vulnerabilidades.pdf', $vulnerabilidad->id) }}"
+                target="_blank"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                📄 Exportar a PDF
+                </a>    
+            <a href="{{ route('vulnerabilidades.index') }}"
                    class="px-4 py-2 text-gray-600 dark:text-gray-200 border hover:bg-indigo-700 rounded-lg transition flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
                     </svg>
                     Volver al listado
                 </a>
+                
             </div>
         </div>
     </div>

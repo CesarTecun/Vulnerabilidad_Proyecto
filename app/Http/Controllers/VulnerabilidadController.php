@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
 use App\Services\AnalizadorVulnerabilidad;
 use Carbon\Carbon;
 use App\Models\PatronVulnerabilidad;
+use Barryvdh\DomPDF\Facade\Pdf;
+use ZipArchive;
 
 
 
@@ -222,66 +224,124 @@ class VulnerabilidadController extends Controller
 
 
 
-    public function detectarDesdeArchivo(Request $request)
-    {
-        $request->validate([
-            'archivo' => 'required|file',
-        ]);
 
-        // 1. Guardar archivo
-        $file = $request->file('archivo');
-        $path = $file->storeAs('vulnerabilidades', $file->getClientOriginalName());
+public function detectarDesdeArchivo(Request $request)
+{
+    $request->validate([
+        'archivo' => 'required|file',
+    ]);
 
-        // 2. Leer contenido y patrones
-        $contenido = Storage::get($path);
-        $lineas = explode("\n", $contenido);
-        $patrones = PatronVulnerabilidad::all();
+    $file = $request->file('archivo');
+    $originalName = $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
+    $contenidoTotal = '';
 
-        $descripcion = '';
-        $fragmentos = [];
-        $lineasDetectadas = [];
+    logger('\ud83d\udcc1 Archivo recibido: ' . $originalName);
+    logger('\ud83d\udce6 Extensi\u00f3n detectada: ' . $extension);
 
-        foreach ($patrones as $patron) {
-            foreach ($lineas as $i => $linea) {
-                if (@preg_match("/{$patron->regex}/", $linea, $match)) {
-                    $descripcion .= "🔸 {$patron->nombre} (Línea ".($i+1)."): {$match[0]}\n";
-                    $fragmentos[] = trim($linea);
-                    $lineasDetectadas[] = $i + 1;
-                }
+    if ($extension === 'zip') {
+        $path = $file->storeAs('vulnerabilidades', 'zip_' . time() . '.zip');
+        $fullPath = storage_path('app/' . $path);
+        $extractPath = storage_path('app/temp_extract_' . time());
+
+        $zip = new ZipArchive;
+        if ($zip->open($fullPath) === TRUE) {
+            $success = $zip->extractTo($extractPath);
+            $zip->close();
+            logger('\u2705 ZIP abierto y extra\u00eddo: ' . ($success ? 'ok' : 'fallo'));
+        } else {
+            logger('\u274c Fallo al abrir ZIP: ' . $fullPath);
+            return back()->withErrors(['archivo' => '\u274c No se pudo abrir el archivo ZIP.']);
+        }
+
+        $relativePath = Str::after($extractPath, storage_path('app') . '/');
+        logger('\ud83d\udcc2 Ruta relativa: ' . $relativePath);
+
+        $archivos = collect(Storage::allFiles($relativePath))
+            ->filter(fn($f) => preg_match('/\.(php|js|html|py|java|txt)$/', $f));
+
+        logger('\ud83d\udcc4 Archivos analizables: ' . $archivos->count());
+
+        if ($archivos->isEmpty()) {
+            Storage::deleteDirectory($relativePath);
+            Storage::delete($path);
+            return back()->withErrors(['archivo' => '\u26a0\ufe0f ZIP sin archivos analizables.']);
+        }
+
+        foreach ($archivos as $archivo) {
+            logger('\ud83d\udcc3 Leyendo archivo: ' . $archivo);
+            $contenidoTotal .= Storage::get($archivo) . "\n";
+        }
+
+        Storage::deleteDirectory($relativePath);
+        Storage::delete($path);
+    } else {
+        $path = $file->storeAs('vulnerabilidades', $originalName);
+        $contenidoTotal = Storage::get($path);
+        logger('\ud83d\udcc4 Archivo simple le\u00eddo');
+    }
+
+    if (empty(trim($contenidoTotal))) {
+        return back()->withErrors(['archivo' => '\u26a0\ufe0f Archivo vac\u00edo o sin texto \u00fatil.']);
+    }
+
+    logger('\ud83d\udd0d Primeras l\u00edneas del contenido: ' . substr($contenidoTotal, 0, 500));
+
+    $lineas = explode("\n", $contenidoTotal);
+    $patrones = PatronVulnerabilidad::all();
+
+    logger('\ud83e\uddec Patrones cargados: ' . $patrones->pluck('regex')->implode(', '));
+
+    $descripcion = '';
+    $fragmentos = [];
+    $lineasDetectadas = [];
+
+    foreach ($patrones as $patron) {
+        foreach ($lineas as $i => $linea) {
+            if (@preg_match("/{$patron->regex}/", $linea, $match)) {
+                $descripcion .= "\ud83d\udd39 {$patron->nombre} (L\u00ednea " . ($i + 1) . "): {$match[0]}\n";
+                $fragmentos[] = trim($linea);
+                $lineasDetectadas[] = $i + 1;
+                logger("\ud83c\udf1f Coincidencia: {$patron->regex} en l\u00ednea " . ($i + 1));
             }
         }
-
-        if (empty($lineasDetectadas)) {
-            return redirect()->route('vulnerabilidades.index')->with('success', '✅ No se detectaron vulnerabilidades.');
-        }
-
-        // 3. Crear una sola vulnerabilidad consolidada
-        $registro = Vulnerabilidad::create([
-            'nombre' => 'Vuln-' . strtoupper(Str::random(5)),
-            'componente_afectado' => $path,
-            'criticidad' => 'Alta', // opcional: podrías calcular mayor criticidad real
-            'estado' => 'Detectada',
-            'fecha_deteccion' => now(),
-            'cvss' => 9, // opcional: podrías aplicar lógica más compleja
-            'descripcion' => trim($descripcion),
-            'linea_detectada' => $lineasDetectadas[0],
-            'fragmento_detectado' => implode("\n", $fragmentos),
-            'tipo' => 'Múltiple',
-        ]);
-
-        // 4. Notificación única al usuario
-        auth()->user()->notify(
-            new \App\Notifications\NuevaVulnerabilidadDetectada(
-                "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)", // nombre
-                $registro->id,                                                      // ID
-                'alta'                                                              // prioridad
-            )
-        );
-
-
-        return redirect()->route('vulnerabilidades.index')
-            ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas en un solo archivo.');
     }
+
+    logger('\u2705 Total coincidencias: ' . count($lineasDetectadas));
+
+    if (empty($lineasDetectadas)) {
+        return redirect()->route('vulnerabilidades.index')
+            ->with('success', '\u2705 No se detectaron vulnerabilidades.');
+    }
+
+    $registro = Vulnerabilidad::create([
+        'nombre' => 'VULN-' . strtoupper(Str::random(5)),
+        'componente_afectado' => $originalName,
+        'criticidad' => 'Alta',
+        'estado' => 'Detectada',
+        'fecha_deteccion' => now(),
+        'cvss' => 9,
+        'descripcion' => trim($descripcion),
+        'linea_detectada' => $lineasDetectadas[0],
+        'fragmento_detectado' => implode("\n", $fragmentos),
+        'tipo' => $extension === 'zip' ? 'Carpeta' : 'Archivo',
+    ]);
+
+    auth()->user()->notify(
+        new NuevaVulnerabilidadDetectada(
+            "{$registro->nombre} (" . count($lineasDetectadas) . " hallazgos)",
+            $registro->id,
+            'alta'
+        )
+    );
+
+    return redirect()->route('vulnerabilidades.index')
+        ->with('success', count($lineasDetectadas) . ' vulnerabilidades detectadas en ' . ($extension === 'zip' ? 'la carpeta' : 'el archivo') . '.');
+}
+
+
+
+    
 
 
 
@@ -295,5 +355,14 @@ class VulnerabilidadController extends Controller
         };
     }
 
+    public function exportarPdf($id)
+    {
+        $vulnerabilidad = Vulnerabilidad::findOrFail($id);
+
+        $pdf = Pdf::loadView('vulnerabilidades.pdf', compact('vulnerabilidad'))
+                ->setPaper('a4', 'portrait');
+
+        return $pdf->download('vulnerabilidad_' . $id . '.pdf');
+    }
     
 }

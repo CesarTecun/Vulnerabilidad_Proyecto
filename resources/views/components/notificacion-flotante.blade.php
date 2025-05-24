@@ -56,7 +56,7 @@
         @foreach($pendientes as $n)
             <li class="notification-item px-4 py-3 transition-colors duration-150">
                  <a href="{{ route('notificaciones.marcarYRedirigir', $n->id) }}" class="block">
-                    <p class="text-sm text-gray-700 dark:text-gray-300 truncate">
+                    <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
                         {{ $n->data['mensaje'] ?? 'Nueva notificación' }}
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">

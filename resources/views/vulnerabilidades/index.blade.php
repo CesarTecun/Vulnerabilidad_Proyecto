@@ -17,8 +17,11 @@
                   class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 @csrf
                 <div class="relative flex-grow">
-                    <input type="file" name="archivo" required
-                        class=" w-full text-sm  dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="file" name="archivo" accept=".php,.js,.html,.txt,.zip" required
+                        class="w-full text-sm dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Puedes subir archivos individuales (.php, .js...) o carpetas comprimidas en <strong>.zip</strong>.
+                    </p>
                 </div>
                 <button type="submit"
                         class="inline-flex items-center justify-center px-6 py-4 text-gray-700 dark:text-gray-300 hover:bg-indigo-700  font-medium rounded-md transition-all duration-200 ease-in-out">
