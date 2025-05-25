@@ -15,6 +15,7 @@ use App\Models\PatronVulnerabilidad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use ZipArchive;
 use Illuminate\Support\Facades\File; 
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -120,23 +121,95 @@ class VulnerabilidadController extends Controller
     
     public function simular()
     {
-        $vulnerabilidad = Vulnerabilidad::create([
-            'nombre' => 'Vuln-' . Str::upper(Str::random(5)),
-            'componente_afectado' => 'Componente X',
-            'criticidad' => 'Alta',
-            'estado' => 'Detectada',
-            'fecha_deteccion' => now(),
-            'cvss' => rand(7, 10),
-            'descripcion' => 'Vulnerabilidad generada automáticamente.',
-        ]);
+        DB::beginTransaction();
 
-        auth()->user()->notify(new NuevaVulnerabilidadDetectada(
-            $vulnerabilidad->nombre,
-            $vulnerabilidad->id,
-            'alta'
-        ));
+        try {
+            $patrones = [
+                [
+                    'nombre' => 'Uso de Log4j',
+                    'componente' => 'log4j-core.jar',
+                    'descripcion' => 'Se detectó uso de la librería Log4j en el sistema.',
+                    'criticidad' => 'Alta',
+                    'cvss' => rand(8, 10),
+                ],
+                [
+                    'nombre' => 'Uso inseguro de eval()',
+                    'componente' => 'main.js',
+                    'descripcion' => 'Uso de la función eval() en JavaScript detectado.',
+                    'criticidad' => 'Alta',
+                    'cvss' => rand(8, 10),
+                ],
+                [
+                    'nombre' => 'Uso de Struts2 2.3.x',
+                    'componente' => 'pom.xml',
+                    'descripcion' => 'Dependencia Struts2 2.3.x encontrada, versión vulnerable.',
+                    'criticidad' => 'Alta',
+                    'cvss' => rand(7, 9),
+                ],
+                [
+                    'nombre' => 'IP en lista negra',
+                    'componente' => 'firewall.conf',
+                    'descripcion' => 'Conexión detectada hacia IP maliciosa 45.89.23.100.',
+                    'criticidad' => 'Media',
+                    'cvss' => rand(4, 6),
+                ],
+                [
+                    'nombre' => 'Log4j vulnerable (< 2.16)',
+                    'componente' => 'pom.xml',
+                    'descripcion' => 'Uso de Log4j vulnerable con versión menor a 2.16.',
+                    'criticidad' => 'Alta',
+                    'cvss' => rand(8, 10),
+                ],
+                [
+                    'nombre' => 'Log4j parchado (>= 2.16)',
+                    'componente' => 'pom.xml',
+                    'descripcion' => 'Uso de versión segura de Log4j (>= 2.16).',
+                    'criticidad' => 'Baja',
+                    'cvss' => rand(1, 3),
+                ],
+                [
+                    'nombre' => 'Uso de JNDI dinámico',
+                    'componente' => 'config.properties',
+                    'descripcion' => 'Uso potencial de ${jndi:ldap://} detectado.',
+                    'criticidad' => 'Media',
+                    'cvss' => rand(5, 7),
+                ],
+                [
+                    'nombre' => 'Versión segura de Log4j (>= 2.16)',
+                    'componente' => 'pom.xml',
+                    'descripcion' => 'Se detectó versión parchada de Log4j >= 2.16.',
+                    'criticidad' => 'Baja',
+                    'cvss' => rand(1, 3),
+                ],
+            ];
 
-        return redirect()->route('dashboard')->with('nueva_notificacion', true);
+            $random = $patrones[array_rand($patrones)];
+
+            $vulnerabilidad = Vulnerabilidad::create([
+                'nombre' => 'VULN-' . strtoupper(Str::random(5)) . ' - ' . $random['nombre'],
+                'componente_afectado' => $random['componente'],
+                'criticidad' => $random['criticidad'],
+                'estado' => 'Detectada',
+                'fecha_deteccion' => now(),
+                'cvss' => $random['cvss'],
+                'descripcion' => $random['descripcion'],
+            ]);
+
+            auth()->user()?->notify(new NuevaVulnerabilidadDetectada(
+                $vulnerabilidad->nombre,
+                $vulnerabilidad->id,
+                strtolower($vulnerabilidad->criticidad)
+            ));
+
+            DB::commit();
+
+            return redirect()->route('dashboard')->with('nueva_notificacion', true);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            return redirect()->back()->withErrors(['error' => '❌ Error al simular vulnerabilidad.']);
+        }
     }
 
     
