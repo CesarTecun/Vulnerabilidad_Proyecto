@@ -78,8 +78,9 @@
     </p>
 
     <p><span class="label">Fecha de Detección:</span>
-        <div class="box">{{ $vulnerabilidad->fecha_deteccion }}</div>
+        <div class="box">{{ \Carbon\Carbon::parse($vulnerabilidad->fecha_deteccion)->format('d-m-Y H:i:s') }}</div>
     </p>
+
 
     <p><span class="label">Estado:</span>
         <div class="box">{{ $vulnerabilidad->estado }}</div>
