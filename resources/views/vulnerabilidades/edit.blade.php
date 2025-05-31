@@ -137,11 +137,11 @@
 
             <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
                 <a href="{{ route('vulnerabilidades.index') }}"
-                   class="px-4 py-2 text-gray-600 dark:text-gray-200 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition flex items-center">
+                   class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center">
                     Cancelar
                 </a>
                 <button type="submit"
-                        class="px-4 py-2 text-gray-600 dark:text-gray-200 border border-transparent rounded-md shadow-sm text-sm font-medium bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center">
                     Guardar cambios
                 </button>
             </div>
