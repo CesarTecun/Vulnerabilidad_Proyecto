@@ -14,7 +14,7 @@
 
         <div class="flex justify-end mb-4">
             <a href="{{ route('patrones.create') }}"
-               class="px-4 py-2 text-gray-500 bg-blue-600 rounded hover:bg-blue-700 text-sm">
+               class="px-4 py-2 text-gray-200 bg-blue-600 rounded hover:bg-blue-700 text-sm">
                 ➕ Nuevo Patrón
             </a>
         </div>
